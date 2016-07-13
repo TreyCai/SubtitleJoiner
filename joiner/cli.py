@@ -133,14 +133,3 @@ parser.add_argument(
     action='version',
     version='%(prog)s 0.1'
 )
-
-# args = parser.parse_args()
-# print args
-#
-# width = args.width
-# format = args.format
-# print width
-# print format
-#
-# for f in args.files:
-#     print f

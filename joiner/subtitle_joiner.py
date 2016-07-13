@@ -18,10 +18,11 @@ def scale_image(output_width, image):
 
 def scale_image(output_width, subtitle_height, image):
     width, height = image.size
-    output_height = int(round(height * (output_width * 1.0 / width)))
-    subtitle_height = int(round(subtitle_height * output_width * 1.0 / width))
-    resize_image = image.resize((output_width, output_height), Image.ANTIALIAS)
-    return subtitle_height, resize_image
+    ratio = output_width * 1.0 / width
+    output_height = int(round(height * ratio)
+    subtitle_height = int(round(subtitle_height * ratio))
+    resized = image.resize((output_width, output_height), Image.ANTIALIAS)
+    return subtitle_height, resized
 
 def crop_image_border(image):
     width, height = image.size
@@ -29,7 +30,6 @@ def crop_image_border(image):
     bottom_border = find_bottom_border(image)
     output_height = bottom_border - top_border
     crop = image.crop((0, top_border, width, bottom_border))
-    # crop.save(f.replace('.jpg', '.crop.jpg'))
     return output_height, crop
 
 def find_top_border(image):
