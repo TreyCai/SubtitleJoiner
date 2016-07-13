@@ -1,70 +1,50 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # filter image files
-# downscale images to the output size
-# set pixel spot
+# resize image to the output size
+# set pixel peek pot
 # read pixel and find top black border and bottom black border height
 # full-image vs subtitle-only merge
 # output the final image file
 
-import os, sys
+import sys
+import const
 from PIL import Image
-
-images = []
-
-def process_files(files):
-    output_image = None
-
-    for index, f in enumerate(files):
-        print f
-        if not f.endswith(('.jpg', '.jpeg', '.png')):
-            continue
-
-        try:
-            image = Image.open(f)
-            images.append(image)
-            rgb_image = image.convert('RGB')
-            width, height = image.size
-            top_border = find_top_border(rgb_image)
-            bottom_border = find_bottom_border(rgb_image)
-            crop = image.crop((0, top_border, width, bottom_border))
-            crop.save(f.replace('.jpg', '2.jpg'))
-
-            if output_image is None:
-                output_image = Image.new("RGB", (width, (bottom_border - top_border) * len(files)))
-            output_image.paste(crop, (0, index * (bottom_border - top_border), width, (index + 1) * (bottom_border - top_border)))
-        except IOError:
-            print "IOError: cannot open image file"
-
-    if output_image is not None:
-        print os.path.dirname(files[0])
-        print os.path.dirname(files[0]) + '/la.jpg'
-        output_image.save(os.path.dirname(files[0]) + '/la.jpg')
 
 def scale_image(output_width, image):
     width, height = image.size
     output_height = int(round(height * (output_width * 1.0 / width)))
-    image.resize(output_width, output_height)
+    return image.resize((output_width, output_height), Image.ANTIALIAS)
 
-def crop_image_border(rgb_image):
+def scale_image(output_width, subtitle_height, image):
     width, height = image.size
-    crop = image.crop((0, find_top_border(rgb_image), width, find_bottom_border(rgb_image)))
-    crop.save(f.replace('.jpg', '2.jpg'))
+    output_height = int(round(height * (output_width * 1.0 / width)))
+    subtitle_height = int(round(subtitle_height * output_width * 1.0 / width))
+    resize_image = image.resize((output_width, output_height), Image.ANTIALIAS)
+    return subtitle_height, resize_image
 
-def find_top_border(rgb_image):
-    hook = []
-    width, height = rgb_image.size
+def crop_image_border(image):
+    width, height = image.size
+    top_border = find_top_border(image)
+    bottom_border = find_bottom_border(image)
+    output_height = bottom_border - top_border
+    crop = image.crop((0, top_border, width, bottom_border))
+    # crop.save(f.replace('.jpg', '.crop.jpg'))
+    return output_height, crop
+
+def find_top_border(image):
+    peek = []
+    width, height = image.size
     width_step = width / 10
     height_step = 16
     for i in range(0, width, width_step):
-        hook.append(i)
-    print hook
+        peek.append(i)
 
     border_height = height_step
     while(True):
-        for h in hook:
-            r, g, b = rgb_image.getpixel((h, border_height))
-            print height_step, h, border_height, (r, g, b)
+        for p in peek:
+            r, g, b = image.getpixel((p, border_height))
+            # print height_step, h, border_height, (r, g, b)
             if r == g == b == 0:
                 continue
             else:
@@ -76,20 +56,19 @@ def find_top_border(rgb_image):
                     break
         border_height += height_step
 
-def find_bottom_border(rgb_image):
-    hook = []
-    width, height = rgb_image.size
+def find_bottom_border(image):
+    peek = []
+    width, height = image.size
     width_step = width / 10
     height_step = 16
     for i in range(0, width, width_step):
-        hook.append(i)
-    print hook
+        peek.append(i)
 
     border_height = height - 1
     while(True):
-        for h in hook:
-            r, g, b = rgb_image.getpixel((h, border_height))
-            print height_step, h, border_height, (r, g, b)
+        for p in peek:
+            r, g, b = image.getpixel((p, border_height))
+            # print height_step, h, border_height, (r, g, b)
             if r == g == b == 0:
                 continue
             else:
@@ -101,10 +80,74 @@ def find_bottom_border(rgb_image):
                     break
         border_height -= height_step
 
+def process_images(output_width, output, files):
+    output_image = None
 
-list_of_files = sys.argv[1:]
-print list_of_files
+    for index, f in enumerate(files):
+        if not f.endswith(tuple(const.EXTENSIONS)):
+            continue
 
-process_files(list_of_files)
+        try:
+            image = Image.open(f)
+            resize_image = scale_image(output_width, image)
+            rgb_image = resize_image.convert('RGB')
+            output_height, crop = crop_image_border(rgb_image)
 
-print images
+            # TODO: it'll fail to create a correct image if input images have different size
+            if output_image is None:
+                total_height = output_height * len(files)
+                output_image = Image.new("RGB", (output_width, total_height))
+            output_image.paste(crop, (0,
+                                      index * output_height,
+                                      output_width,
+                                      (index + 1) * output_height))
+
+        except IOError:
+            print "IOError: cannot open image file"
+
+    if output_image is not None:
+        output_image.save(output)
+
+
+def process_subtitle_only(output_width, output, subtitle_height, files):
+    output_image = None
+
+    prepared_images = []
+    for index, f in enumerate(files):
+        if not f.endswith(tuple(const.EXTENSIONS)):
+            continue
+
+        try:
+            image = Image.open(f)
+            subtitle_height, resize_image = scale_image(output_width, subtitle_height, image)
+            rgb_image = resize_image.convert('RGB')
+            output_height, crop = crop_image_border(rgb_image)
+            prepared_images.append((index, output_height, crop))
+
+            if output_image is None:
+                total_height = output_height + subtitle_height * (len(files) - 1)
+                output_image = Image.new("RGB", (output_width, total_height))
+
+        except IOError:
+            print "IOError: cannot open image file"
+
+    for index, output_height, crop in reversed(prepared_images):
+        if output_image is not None:
+            output_image.paste(crop, (0,
+                                      index * subtitle_height,
+                                      output_width,
+                                      output_height + index * subtitle_height))
+
+    if output_image is not None:
+        output_image.save(output)
+
+
+def main(sysargs=sys.argv[1:]):
+    from cli import parser
+    args = parser.parse_args(sysargs)
+    if args.action == const.MERGE_ACTIONS[1]:
+        process_images(args.output_width, args.output, args.files)
+    elif args.action == const.MERGE_ACTIONS[0]:
+        process_subtitle_only(args.output_width, args.output, args.subtitle_height, args.files)
+    else:
+        print "Error: Unknown merge action."
