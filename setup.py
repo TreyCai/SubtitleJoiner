@@ -52,7 +52,7 @@ setup(
     data_files=[],
     entry_points={
         'console_scripts': {
-            'joiner = joiner.__main__.main'
+            'joiner = joiner.__main__:main'
         }
     },
     extras_require=extra_requires,
