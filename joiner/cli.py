@@ -47,6 +47,7 @@ parser.add_argument(
 
     """
 )
+## Deprecated
 # parser.add_argument(
 #     '-f', '--format',
 #     type=str,
@@ -58,28 +59,30 @@ parser.add_argument(
 #
 #     """
 # )
-parser.add_argument(
-    '-p', '--top-border',
-    type=int,
-    default=const.DEFAULT_BORDER,
-    metavar='',
-    dest='top',
-    help="""
-    the top border of each image
-
-    """
-)
-parser.add_argument(
-    '-b', '--bottom-border',
-    type=int,
-    default=const.DEFAULT_BORDER,
-    metavar='',
-    dest='bottom',
-    help="""
-    the bottom border of each image
-
-    """
-)
+# TODO: not support yet
+# parser.add_argument(
+#     '-p', '--top-border',
+#     type=int,
+#     default=const.DEFAULT_BORDER,
+#     metavar='',
+#     dest='top',
+#     help="""
+#     the top border of each image
+#
+#     """
+# )
+# TODO: not support yet
+# parser.add_argument(
+#     '-b', '--bottom-border',
+#     type=int,
+#     default=const.DEFAULT_BORDER,
+#     metavar='',
+#     dest='bottom',
+#     help="""
+#     the bottom border of each image
+#
+#     """
+# )
 # TODO: not support yet
 # parser.add_argument(
 #     '-c', '--border-color',
