@@ -2,6 +2,7 @@
 
 # filter image files
 # resize image to the output size
+# find edges
 # set pixel peek pot
 # read pixel and find top black border and bottom black border height
 # full-image vs subtitle-only merge
@@ -26,9 +27,12 @@ def scale_image(output_width, subtitle_height, image):
 
 def crop_image_border(image):
     width, height = image.size
-    top_border = find_top_border(image)
-    bottom_border = find_bottom_border(image)
+    # find edges and use edge-map to find borders
+    filtered_image = image.filter(ImageFilter.FIND_EDGES)
+    top_border = find_top_border(filtered_image)
+    bottom_border = find_bottom_border(filtered_image)
     output_height = bottom_border - top_border
+    # crop the original rgb_image
     crop = image.crop((0, top_border, width, bottom_border))
     return output_height, crop
 
@@ -93,7 +97,6 @@ def process_images(output_width, output, files):
             rgb_image = resize_image.convert('RGB')
             output_height, crop = crop_image_border(rgb_image)
 
-            # TODO: it'll fail to create a correct image if input images have different size
             if output_image is None:
                 total_height = output_height * len(files)
                 output_image = Image.new("RGB", (output_width, total_height))
